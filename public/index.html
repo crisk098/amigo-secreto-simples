@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#14532d">
+  <meta name="description" content="Sorteio de Amigo Secreto com regras de família e consulta protegida por senha.">
+  <title>Amigo Secreto</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎁%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/main.js?v=2.0.1"></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__inner">
+      <span class="hero__badge">🎄 Sorteio justo e seguro</span>
+      <h1 id="eventTitle">Amigo Secreto</h1>
+      <p class="hero__subtitle">Encontre seu nome, crie uma senha de 4 dígitos e descubra quem você tirou quando o sorteio acontecer.</p>
+      <button type="button" class="btn btn--light" id="organizerBtn">🔒 Área do organizador</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ================= VISÃO PÚBLICA ================= -->
+    <section id="publicSection" aria-labelledby="participantsTitle">
+      <ol class="steps">
+        <li><span class="steps__n">1</span><span>Localize o seu nome na lista.</span></li>
+        <li><span class="steps__n">2</span><span>Crie uma senha de 4 dígitos (e, se quiser, uma dica de presente).</span></li>
+        <li><span class="steps__n">3</span><span>Após o sorteio, volte aqui e digite a senha para ver quem você tirou.</span></li>
+      </ol>
+
+      <div id="drawBanner" class="banner" hidden></div>
+
+      <dl class="stats">
+        <div class="stat"><dd id="statTotal">0</dd><dt>Participantes</dt></div>
+        <div class="stat stat--ok"><dd id="statReady">0</dd><dt>Com senha</dt></div>
+        <div class="stat stat--warn"><dd id="statPending">0</dd><dt>Aguardando senha</dt></div>
+        <div class="stat"><dd id="statFamilies">0</dd><dt>Famílias</dt></div>
+      </dl>
+
+      <h2 id="participantsTitle" class="section-title">Participantes</h2>
+      <div class="toolbar">
+        <input type="search" id="searchInput" class="input" placeholder="Buscar pelo nome ou família…" aria-label="Buscar participante" autocomplete="off">
+        <div class="segmented" role="group" aria-label="Filtrar participantes">
+          <button type="button" class="segmented__btn is-active" data-filter="all">Todos</button>
+          <button type="button" class="segmented__btn" data-filter="pending">Aguardando senha</button>
+          <button type="button" class="segmented__btn" data-filter="ready">Com senha</button>
+        </div>
+        <div class="segmented segmented--layout" role="group" aria-label="Modo de visualização">
+          <button type="button" class="segmented__btn is-active" data-layout="grid" title="Visualização em Cards">🎴 Cards</button>
+          <button type="button" class="segmented__btn" data-layout="list" title="Visualização em Lista Compacta">📄 Lista</button>
+        </div>
+      </div>
+      <div id="participantsContainer" class="view-grid" aria-live="polite"></div>
+
+      <p class="locked-note" id="lockedNote">
+        Organiza este amigo secreto? <button type="button" class="link" data-action="open-auth">Entre como organizador</button>.
+      </p>
+    </section>
+
+    <!-- ================= PAINEL DO ORGANIZADOR ================= -->
+    <section id="organizerSection" class="panel" hidden aria-labelledby="organizerTitle">
+      <div class="panel__head">
+        <div>
+          <h2 id="organizerTitle">🛠️ Painel do organizador</h2>
+          <p class="muted">Gerencie participantes, configure o evento e realize o sorteio.</p>
+        </div>
+        <button type="button" class="btn btn--ghost" id="logoutBtn">Sair</button>
+      </div>
+
+      <div class="share">
+        <div class="share__text">
+          <strong>🔗 Link para os participantes</strong>
+          <span class="muted">Envie no WhatsApp para cada um criar a própria senha.</span>
+        </div>
+        <div class="share__controls">
+          <input type="text" id="shareUrl" class="input" readonly aria-label="Link do evento">
+          <button type="button" class="btn btn--primary" id="copyLinkBtn">Copiar</button>
+        </div>
+      </div>
+
+      <div id="familyWarning" class="alert alert--warn" role="alert" hidden></div>
+
+      <div class="tabs" role="tablist" aria-label="Seções do organizador">
+        <button type="button" role="tab" class="tabs__btn is-active" id="tab-participants" aria-selected="true" aria-controls="pane-participants" data-tab="participants">👥 Participantes</button>
+        <button type="button" role="tab" class="tabs__btn" id="tab-settings" aria-selected="false" aria-controls="pane-settings" data-tab="settings">⚙️ Configurações</button>
+        <button type="button" role="tab" class="tabs__btn" id="tab-draw" aria-selected="false" aria-controls="pane-draw" data-tab="draw">🎲 Sorteio</button>
+      </div>
+
+      <!-- Participantes -->
+      <div id="pane-participants" class="pane" role="tabpanel" aria-labelledby="tab-participants">
+        <div class="actions">
+          <button type="button" class="btn btn--primary" data-action="open-bulk">📋 Importar lista</button>
+          <button type="button" class="btn" data-action="open-single">👤 Adicionar pessoa</button>
+          <button type="button" class="btn btn--danger-ghost" data-action="clear-all">🗑️ Limpar tudo</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Nome</th><th>Família</th><th>Presente</th><th>E-mail</th><th>Senha</th><th class="table__actions">Ações</th></tr>
+            </thead>
+            <tbody id="participantsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Configurações -->
+      <div id="pane-settings" class="pane" role="tabpanel" aria-labelledby="tab-settings" hidden>
+        <form id="settingsForm" class="form" novalidate>
+          <fieldset class="form__group">
+            <legend>🎈 Evento</legend>
+            <label class="field"><span>Nome do evento</span><input class="input" name="eventName" maxlength="80" required></label>
+            <label class="field"><span>Valor sugerido (R$)</span><input class="input" name="suggestedBudget" maxlength="40" placeholder="Ex.: 50 ou 50 a 100"></label>
+            <label class="field"><span>Data</span><input class="input" name="eventDate" maxlength="80" placeholder="Ex.: 24/12 às 20h"></label>
+            <label class="field"><span>Local</span><input class="input" name="eventLocation" maxlength="120" placeholder="Ex.: Casa da vovó"></label>
+            <label class="field field--wide"><span>Link público <small>(túnel ou domínio, usado no botão “Copiar”)</small></span><input class="input" name="publicBaseUrl" type="url" placeholder="https://meu-evento.exemplo.com"></label>
+          </fieldset>
+
+          <fieldset class="form__group">
+            <legend>🔐 Senha do organizador</legend>
+            <label class="field"><span>Senha atual</span><input class="input" type="password" name="currentPassword" autocomplete="current-password"></label>
+            <label class="field"><span>Nova senha <small>(mín. 6 caracteres)</small></span><input class="input" type="password" name="newPassword" autocomplete="new-password" minlength="6"></label>
+          </fieldset>
+
+          <fieldset class="form__group">
+            <legend>📫 E-mail</legend>
+            <div id="emailStatus" class="field field--wide"></div>
+            <label class="field field--wide"><span>Enviar e-mail de teste para</span>
+              <div class="inline">
+                <input class="input" type="email" id="testEmailTo" placeholder="voce@exemplo.com">
+                <button type="button" class="btn" id="testEmailBtn">Enviar teste</button>
+              </div>
+            </label>
+          </fieldset>
+
+          <div class="actions"><button type="submit" class="btn btn--primary">💾 Salvar configurações</button></div>
+        </form>
+      </div>
+
+      <!-- Sorteio -->
+      <div id="pane-draw" class="pane" role="tabpanel" aria-labelledby="tab-draw" hidden>
+        <div class="draw">
+          <div class="draw__emoji" aria-hidden="true">🎲 🎅 🎁</div>
+          <h3>Pronto para sortear?</h3>
+          <p class="muted">Ninguém tira a si mesmo e pessoas da mesma família não se tiram. Você também só vê os pares se pedir no gabarito.</p>
+          <ul class="checklist" id="checklist"></ul>
+          <label class="check" id="sendEmailsWrap"><input type="checkbox" id="sendEmails"><span>Enviar o resultado por e-mail para quem tem e-mail cadastrado</span></label>
+          <div class="actions actions--center">
+            <button type="button" class="btn btn--primary btn--lg" id="drawBtn">🚀 Realizar sorteio</button>
+            <button type="button" class="btn btn--danger-ghost btn--lg" id="cancelDrawBtn" hidden>Cancelar sorteio atual</button>
+          </div>
+        </div>
+
+        <div id="drawReport" class="report" hidden></div>
+
+        <div id="answerKey" class="answer-key" hidden>
+          <h3>📜 Gabarito de emergência</h3>
+          <p class="muted">Use se alguém esquecer a senha. Cada nome só é revelado quando você clica.</p>
+          <ul class="answer-key__list" id="answerKeyList"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">Feito com 🎅 para um Natal mais divertido.</footer>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+  <!-- ================= DIÁLOGOS ================= -->
+  <dialog id="claimDialog" class="dialog" aria-labelledby="claimTitle">
+    <form id="claimForm" class="dialog__body" novalidate>
+      <button type="button" class="dialog__close" data-close aria-label="Fechar">✕</button>
+      <div class="identity"><span class="avatar avatar--lg" id="claimAvatar"></span><h2 id="claimTitle"></h2><span id="claimFamily"></span></div>
+      <p class="muted center" id="claimIntro"></p>
+      <label class="field" id="claimCurrentWrap" hidden><span>Senha atual</span><input class="input input--pin" type="password" inputmode="numeric" maxlength="4" id="claimCurrent" autocomplete="off"></label>
+      <label class="field"><span id="claimPinLabel">Crie uma senha de 4 números</span><input class="input input--pin" type="password" inputmode="numeric" maxlength="4" pattern="\d{4}" id="claimPin" autocomplete="off" required></label>
+      <label class="field"><span>O que você gostaria de ganhar? <small>(opcional)</small></span><input class="input" id="claimWishlist" maxlength="200" placeholder="Ex.: livro, camiseta M, chocolate"></label>
+      <label class="field"><span>E-mail <small>(opcional — para receber o resultado)</small></span><input class="input" type="email" id="claimEmail" maxlength="254"></label>
+      <p class="form-error" id="claimError" role="alert" hidden></p>
+      <div class="dialog__actions"><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn btn--primary">Salvar</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="revealDialog" class="dialog" aria-labelledby="revealTitle">
+    <div class="dialog__body">
+      <button type="button" class="dialog__close" data-close aria-label="Fechar">✕</button>
+      <div class="identity"><span class="avatar avatar--lg" id="revealAvatar"></span><h2 id="revealTitle"></h2></div>
+
+      <form id="revealForm" novalidate>
+        <label class="field"><span>Sua senha de 4 números</span><input class="input input--pin" type="password" inputmode="numeric" maxlength="4" id="revealPin" autocomplete="off" required></label>
+        <p class="form-error" id="revealError" role="alert" hidden></p>
+        <div class="dialog__actions"><button type="submit" class="btn btn--primary btn--block">Entrar 🔓</button></div>
+      </form>
+
+      <div id="revealResult" hidden>
+        <div class="secret" id="revealSecret" hidden>
+          <span class="secret__label">Seu amigo secreto é</span>
+          <strong class="secret__name" id="revealReceiver"></strong>
+        </div>
+        <div class="alert alert--info" id="revealNotice" hidden></div>
+        <div class="tip" id="revealReceiverWishlist" hidden></div>
+        <div class="event-info" id="revealEvent"></div>
+        <form id="wishlistForm" class="wishlist" novalidate>
+          <label for="wishlistInput"><strong>🎁 O que você quer ganhar?</strong> <small>(visível para todos na lista de presentes)</small></label>
+          <div class="inline">
+            <input class="input" id="wishlistInput" maxlength="200" placeholder="Ex.: livro, camiseta M, chocolate">
+            <button type="submit" class="btn">Salvar</button>
+          </div>
+        </form>
+        <p class="hint">🤫 Guarde segredo até a revelação!</p>
+        <button type="button" class="btn btn--block" data-close>Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="authDialog" class="dialog dialog--sm" aria-labelledby="authTitle">
+    <form id="authForm" class="dialog__body" novalidate>
+      <button type="button" class="dialog__close" data-close aria-label="Fechar">✕</button>
+      <h2 id="authTitle" class="center">🔐 Área do organizador</h2>
+      <label class="field"><span>Senha do organizador</span><input class="input" type="password" id="authPassword" autocomplete="current-password" required></label>
+      <p class="form-error" id="authError" role="alert" hidden></p>
+      <div class="dialog__actions"><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn btn--primary">Entrar</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="bulkDialog" class="dialog" aria-labelledby="bulkTitle">
+    <form id="bulkForm" class="dialog__body" novalidate>
+      <button type="button" class="dialog__close" data-close aria-label="Fechar">✕</button>
+      <h2 id="bulkTitle">📋 Importar lista</h2>
+      <p class="muted">Um nome por linha. Agrupe por família com cabeçalhos ou use <code>Nome - Família</code>, <code>Nome (Família)</code>.</p>
+      <label class="field"><span>Família padrão <small>(opcional)</small></span><input class="input" name="defaultFamily" maxlength="60" list="familyOptions"></label>
+      <label class="field"><span>Nomes</span><textarea class="input" name="text" rows="9" required placeholder="Família Silva:&#10;Carlos&#10;Mariana&#10;&#10;Família Souza:&#10;Ana&#10;Lucas&#10;&#10;Sem família:&#10;João"></textarea></label>
+      <div class="dialog__actions"><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn btn--primary">Importar</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="personDialog" class="dialog dialog--sm" aria-labelledby="personTitle">
+    <form id="personForm" class="dialog__body" novalidate>
+      <button type="button" class="dialog__close" data-close aria-label="Fechar">✕</button>
+      <h2 id="personTitle"></h2>
+      <label class="field"><span>Nome</span><input class="input" name="name" maxlength="80" required></label>
+      <label class="field"><span>Família ou grupo</span><input class="input" name="family" maxlength="60" list="familyOptions" placeholder="Em branco = sem restrição"></label>
+      <label class="field"><span>E-mail <small>(opcional)</small></span><input class="input" type="email" name="email" maxlength="254"></label>
+      <p class="form-error" id="personError" role="alert" hidden></p>
+      <div class="dialog__actions"><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn btn--primary">Salvar</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="dialog dialog--sm" aria-labelledby="confirmTitle">
+    <form method="dialog" class="dialog__body">
+      <h2 id="confirmTitle"></h2>
+      <p id="confirmMessage" class="muted"></p>
+      <div class="dialog__actions">
+        <button type="submit" value="cancel" class="btn">Cancelar</button>
+        <button type="submit" value="ok" class="btn btn--primary" id="confirmOk">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="familyOptions"></datalist>
+</body>
+</html>
